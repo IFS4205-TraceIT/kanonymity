@@ -1,4 +1,6 @@
 drop view if exists researchdata;
+create index if not exists cc_contacted_user_id on closecontacts(contacted_user_id);
+create index if not exists cc_infected_user_id on closecontacts(infected_user_id);
 create or replace view researchdata as (
 	select u.dob, u.gender, u.postal_code, 
 	ARRAY(
