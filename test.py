@@ -3,9 +3,12 @@ import psycopg2
 from prettytable import PrettyTable
 import generate_anon_data
 import sys
+from psycopg2 import sql
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 maindb = [os.environ['POSTGRES_HOST'],os.environ['POSTGRES_DB'],os.environ['POSTGRES_USER'],os.environ['POSTGRES_PASSWORD']]
 researchdb = [os.environ['POSTGRES_HOST'],os.environ['POSTGRES_RESEARCH_DB'],os.environ['POSTGRES_RESEARCH_USER'],os.environ['POSTGRES_RESEARCH_PASSWORD']]
+testdb = [os.environ['POSTGRES_HOST'],"anon_testdb",os.environ['POSTGRES_SUPER_USER'],os.environ['POSTGRES_SUPER_PASSWORD']]
 
 def kanonymity_test(kvalue):
     statement = """
@@ -43,7 +46,32 @@ def check_no_missing_records():
     if result1[0][0] == result2[0][0]:
         return True
     return False
-    
+
+def handle_missing_result_data_researchdb():
+    conn = db_con(testdb)
+    try:
+        generate_anon_data.db_import(conn, "1qwery124")
+        generate_anon_data.db_import(conn, "")
+    except IOError:
+        return False
+    return True
+
+def handle_malform_insert_researchdb():
+    statement = """
+        select * from researchdata;
+    """
+    conn = db_con(testdb)
+    malform_file = "./test_data/malform_insert.csv"
+    try:
+        generate_anon_data.db_import(conn,malform_file)
+    except Exception as e:
+        return False
+    cur = conn.cursor()
+    cur.execute(statement)
+    result = cur.fetchall()
+    if(len(result) == 1):
+        return True
+    return False
 
 def print_result(lvalue):
     statement = """
@@ -75,14 +103,70 @@ def db_con(dbargs):
         print(error)
     return None
 
+def setup_test_db(dbargs):
+    statement = """
+        create database {database_name};
+    """
+    conn = psycopg2.connect(host=dbargs[0],user=dbargs[2],password=dbargs[3])
+    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = conn.cursor()
+    cur.execute(
+        sql.SQL(
+            statement
+        ).format(
+            database_name = sql.Identifier(
+                dbargs[1]
+            )
+        )
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def teardown(dbargs):
+    statement = """
+        drop database if exists {database_name};
+    """
+    conn = psycopg2.connect(host=dbargs[0],user=dbargs[2],password=dbargs[3])
+    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = conn.cursor()
+    cur.execute(
+        sql.SQL(
+            statement
+        ).format(
+            database_name = sql.Identifier(
+                dbargs[1]
+            )
+        )
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Disable
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
 def main():
+    teardown(testdb)
+    setup_test_db(testdb)
+    #blockPrint()
     t = PrettyTable(['TestCases', 'PassedResult'])
     # t.add_row(['',])
+    t.add_row(['handle_missing_result_data_researchdb',handle_missing_result_data_researchdb()])
+    t.add_row(['handle_malform_insert_researchdb',handle_malform_insert_researchdb()])
     t.add_row(['check_no_missing_records',check_no_missing_records()])
     t.add_row(['kanonymity_test', kanonymity_test(sys.argv[1])])
+    #enablePrint()
     print(t)
 
     print_result(sys.argv[2])
+    teardown(testdb)
 
 if __name__ == '__main__':
     main()

@@ -131,7 +131,9 @@ def clean_db(conn, cur):
     cur.execute(sql_as_string)
     conn.commit()
 
-def db_import(conn):
+def db_import(conn, file_path):
+    if file_path == None:
+        file_path = resultfolder + dataset + "/" + kalgo + "/" + dataset + "_anonymized_" + str(k) + ".csv"
     cur = conn.cursor()
     clean_db(conn, cur)
 
@@ -140,14 +142,25 @@ def db_import(conn):
         (dob, gender, postal_code, list_of_vaccines, last_close_contact, last_infected_date, total_infection, total_close_contact_as_infected, total_close_contact_with_infected) 
         values(%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-
-    with open(resultfolder + dataset + "/" + kalgo + "/" + dataset + "_anonymized_" + str(k) + ".csv",'r') as f:
-        next(f)
-        reader = csv.reader(f)
-        for each in reader:
-            temp = tuple(each[0].split(";"))
-            cur.execute(insert_statement,temp)
-            conn.commit()
+    try:
+        with open(file_path,'r') as f:
+            next(f)
+            reader = csv.reader(f)
+            for each in reader:
+                if(not each):
+                    continue
+                temp = tuple(each[0].split(";"))
+                if(len(temp) != 9):
+                    continue
+                try:
+                    cur.execute(insert_statement,temp)
+                    conn.commit()
+                except (Exception, psycopg2.DatabaseError) as error:
+                    cur.execute("ROLLBACK")
+                    conn.commit()
+    except IOError:
+        print("File not found\n")
+        return
             
 
 def get_args(method, kvalue, datafolder_name):
@@ -163,7 +176,7 @@ def get_args(method, kvalue, datafolder_name):
 def main():
     conn = db_con(maindb)
     if(conn == None):
-        exit(1)
+        return
     
     # Get data from database into a csv file
     data = db_export(conn)
@@ -180,7 +193,7 @@ def main():
     
     # Gather anonymized data in results and add to research database
     conn = db_con(researchdb)
-    db_import(conn)
+    db_import(conn, None)
     conn.close()
     
 
