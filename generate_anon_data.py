@@ -48,8 +48,8 @@ def filter_data(list):
         result += each+";"
     return result[:-1]
 
-def write_to_file(result):
-    with open(datafolder + dataset + "/" + dataset + '.csv', 'w') as f:
+def write_to_file(result, file_path):
+    with open(file_path, 'w') as f:
         writer = csv.writer(f)
         # write column headers
         writer.writerow([filter_data(columns)])
@@ -57,13 +57,15 @@ def write_to_file(result):
             # write data per row
             writer.writerow([filter_data(each)])
 
-def db_export(conn):
+def db_export(conn, file_path):
+    if file_path == None:
+        file_path = datafolder + dataset + "/" + dataset + '.csv'
     cur = conn.cursor()
     sql_file = open(view_file)
     sql_as_string = sql_file.read()
     cur.execute(sql_as_string)
     result = cur.fetchall()
-    write_to_file(result)
+    write_to_file(result, file_path)
     data = pd.DataFrame(result, columns = columns)
     return data
 
@@ -131,7 +133,9 @@ def clean_db(conn, cur):
     cur.execute(sql_as_string)
     conn.commit()
 
-def db_import(conn):
+def db_import(conn, file_path):
+    if file_path == None:
+        file_path = resultfolder + dataset + "/" + kalgo + "/" + dataset + "_anonymized_" + str(k) + ".csv"
     cur = conn.cursor()
     clean_db(conn, cur)
 
@@ -140,14 +144,25 @@ def db_import(conn):
         (dob, gender, postal_code, list_of_vaccines, last_close_contact, last_infected_date, total_infection, total_close_contact_as_infected, total_close_contact_with_infected) 
         values(%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-
-    with open(resultfolder + dataset + "/" + kalgo + "/" + dataset + "_anonymized_" + str(k) + ".csv",'r') as f:
-        next(f)
-        reader = csv.reader(f)
-        for each in reader:
-            temp = tuple(each[0].split(";"))
-            cur.execute(insert_statement,temp)
-            conn.commit()
+    try:
+        with open(file_path,'r') as f:
+            next(f)
+            reader = csv.reader(f)
+            for each in reader:
+                if(not each):
+                    continue
+                temp = tuple(each[0].split(";"))
+                if(len(temp) != 9):
+                    continue
+                try:
+                    cur.execute(insert_statement,temp)
+                    conn.commit()
+                except (Exception, psycopg2.DatabaseError) as error:
+                    cur.execute("ROLLBACK")
+                    conn.commit()
+    except IOError:
+        print("File not found\n")
+        return
             
 
 def get_args(method, kvalue, datafolder_name):
@@ -163,10 +178,13 @@ def get_args(method, kvalue, datafolder_name):
 def main():
     conn = db_con(maindb)
     if(conn == None):
-        exit(1)
+        return
     
     # Get data from database into a csv file
-    data = db_export(conn)
+    try:
+        data = db_export(conn, None)
+    except Exception:
+        return
     conn.close()
 
     # Create generalization hierarchy files
@@ -180,7 +198,7 @@ def main():
     
     # Gather anonymized data in results and add to research database
     conn = db_con(researchdb)
-    db_import(conn)
+    db_import(conn, None)
     conn.close()
     
 
