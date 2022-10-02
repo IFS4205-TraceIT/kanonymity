@@ -48,8 +48,8 @@ def filter_data(list):
         result += each+";"
     return result[:-1]
 
-def write_to_file(result):
-    with open(datafolder + dataset + "/" + dataset + '.csv', 'w') as f:
+def write_to_file(result, file_path):
+    with open(file_path, 'w') as f:
         writer = csv.writer(f)
         # write column headers
         writer.writerow([filter_data(columns)])
@@ -57,13 +57,15 @@ def write_to_file(result):
             # write data per row
             writer.writerow([filter_data(each)])
 
-def db_export(conn):
+def db_export(conn, file_path):
+    if file_path == None:
+        file_path = datafolder + dataset + "/" + dataset + '.csv'
     cur = conn.cursor()
     sql_file = open(view_file)
     sql_as_string = sql_file.read()
     cur.execute(sql_as_string)
     result = cur.fetchall()
-    write_to_file(result)
+    write_to_file(result, file_path)
     data = pd.DataFrame(result, columns = columns)
     return data
 
@@ -179,7 +181,10 @@ def main():
         return
     
     # Get data from database into a csv file
-    data = db_export(conn)
+    try:
+        data = db_export(conn, None)
+    except Exception:
+        return
     conn.close()
 
     # Create generalization hierarchy files

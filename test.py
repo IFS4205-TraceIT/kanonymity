@@ -155,14 +155,14 @@ def enablePrint():
 def main():
     teardown(testdb)
     setup_test_db(testdb)
-    #blockPrint()
+    blockPrint()
     t = PrettyTable(['TestCases', 'PassedResult'])
     # t.add_row(['',])
     t.add_row(['handle_missing_result_data_researchdb',handle_missing_result_data_researchdb()])
     t.add_row(['handle_malform_insert_researchdb',handle_malform_insert_researchdb()])
     t.add_row(['check_no_missing_records',check_no_missing_records()])
     t.add_row(['kanonymity_test', kanonymity_test(sys.argv[1])])
-    #enablePrint()
+    enablePrint()
     print(t)
 
     print_result(sys.argv[2])
