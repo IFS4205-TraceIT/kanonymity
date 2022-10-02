@@ -19,3 +19,6 @@
 # Anonymization
 1. Run `poetry run python generate_anon_data.py --k <value>` to start anonymizing process with `value` anonymity.
 Eg: `poetry run python generate_anon_data.py --k 3`
+## Testing
+1. Run `poetry run python test.py <k anonymity value> <l diversity value>` to test. 
+Eg: `poetry run python test.py 2 2`
