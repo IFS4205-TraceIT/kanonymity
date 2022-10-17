@@ -1,5 +1,6 @@
 ## Setting up for local development
 0. Ensure there is a view called researchdata in maindb and maindb_readwrite can select researchdata
+
 Create view:
 ```
 drop view if exists researchdata;
