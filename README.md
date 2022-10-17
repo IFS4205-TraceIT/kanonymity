@@ -1,5 +1,6 @@
 ## Setting up for local development
 0. Ensure there is a view called researchdata in maindb and maindb_readwrite can select researchdata
+Create view:
 ```
 drop view if exists researchdata;
 create index if not exists cc_contacted_user_id on closecontacts(contacted_user_id);
@@ -38,6 +39,10 @@ create or replace view researchdata as (
 	) as total_close_contact_with_infected
  	from Users u
 );
+```
+Manage view perms:
+```
+GRANT SELECT ON researchdata TO maindb_readwrite;
 ```
 1. Ensure you have the following installed:
     * Python: `3.10` or above
