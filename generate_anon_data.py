@@ -22,8 +22,8 @@ researchdb_file = "researchdb.sql"
 
 # Variables used by database
 # [ip address, database name, username, password]
-maindb = [os.environ['POSTGRES_HOST'],os.environ['POSTGRES_DB'],os.environ['POSTGRES_USER'],os.environ['POSTGRES_PASSWORD'],os.environ['POSTGRES_PORT']]
-researchdb = [os.environ['POSTGRES_RESEARCH_HOST'],os.environ['POSTGRES_RESEARCH_DB'],os.environ['POSTGRES_RESEARCH_USER'],os.environ['POSTGRES_RESEARCH_PASSWORD'],os.environ['POSTGRES_RESEARCH_PORT']]
+maindb = [os.environ['POSTGRES_HOST'],os.environ['POSTGRES_DB'],os.environ['POSTGRES_USER'],os.environ['POSTGRES_PASSWORD'],os.environ['POSTGRES_PORT'],os.environ['POSTGRES_SSL_CERT'],os.environ['POSTGRES_SSL_KEY'],os.environ['POSTGRES_SSL_ROOT_CERT']]
+researchdb = [os.environ['POSTGRES_RESEARCH_HOST'],os.environ['POSTGRES_RESEARCH_DB'],os.environ['POSTGRES_RESEARCH_USER'],os.environ['POSTGRES_RESEARCH_PASSWORD'],os.environ['POSTGRES_RESEARCH_PORT'],os.environ['POSTGRES_RESEARCH_SSL_CERT'],os.environ['POSTGRES_RESEARCH_SSL_KEY'],os.environ['POSTGRES_RESEARCH_SSL_ROOT_CERT']]
 
 
 # Important columns_type = {age, postal, gender}
@@ -120,7 +120,11 @@ def db_con(dbargs):
             database=dbargs[1],
             user=dbargs[2],
             password=dbargs[3],
-            port=dbargs[4]
+            port=dbargs[4],
+            sslmode="verify-ca",
+            sslcert=dbargs[5],
+            sslkey=dbargs[6],
+            sslrootcert=dbargs[7]
         )
         return conn
     except (Exception, psycopg2.DatabaseError) as error:
